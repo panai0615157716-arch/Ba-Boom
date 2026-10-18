@@ -125,12 +125,12 @@ public class CountdownTimer : MonoBehaviour
 
         if (currentPhase == GamePhase.Exploring)
         {
-            timerText.text = "EXPLORE: " + seconds;
+            timerText.text = ": " + seconds;
         }
         else if (currentPhase == GamePhase.Selecting ||
                  currentPhase == GamePhase.Failed)
         {
-            timerText.text = "SELECT: " + seconds;
+            timerText.text = ": " + seconds;
         }
     }
 }
