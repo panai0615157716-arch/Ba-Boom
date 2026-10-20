@@ -11,9 +11,10 @@ public class GameResultManager : MonoBehaviour
     public int targetScore = 600;
 
     [Header("Result Settings")]
-    public float resultDelay = 0.8f;
+    public float resultDelay = 1.5f;
 
     private int activeExplosions = 0;
+    private bool chainStarted = false;
     private bool resultStarted = false;
 
     private void Awake()
@@ -21,44 +22,69 @@ public class GameResultManager : MonoBehaviour
         Instance = this;
     }
 
-    // เรียกเมื่อวัตถุเริ่มระเบิด
+    private void Start()
+    {
+        // รีเซ็ตคะแนนของด่านใหม่
+        ResultDataManager.ResetRun();
+    }
+
+    // เรียกเมื่อมีวัตถุเริ่มระเบิด
     public void RegisterExplosion()
     {
+        if (resultStarted)
+            return;
+
+        chainStarted = true;
         activeExplosions++;
     }
 
     // เรียกเมื่อวัตถุระเบิดเสร็จ
     public void ExplosionFinished()
     {
-        activeExplosions--;
+        if (!chainStarted || resultStarted)
+            return;
 
-        if (activeExplosions <= 0 && !resultStarted)
+        activeExplosions = Mathf.Max(0, activeExplosions - 1);
+
+        // ระเบิดทั้งหมดจบแล้ว
+        if (activeExplosions == 0)
         {
             resultStarted = true;
-            StartCoroutine(CheckResult());
+            StartCoroutine(FinishRound());
         }
     }
 
-    private IEnumerator CheckResult()
+    private IEnumerator FinishRound()
     {
-        // รอก่อนเปลี่ยน Scene
+        // รอเล็กน้อยก่อนแสดงผลลัพธ์
         yield return new WaitForSeconds(resultDelay);
 
-        int finalScore = 0;
+        // คำนวณ Chain และ Multiplier
+        ResultDataManager.CalculateFinalScore();
 
-        if (ScoreManager.Instance != null)
-        {
-            finalScore = ScoreManager.Instance.CurrentScore;
-        }
+        int totalScore = ResultDataManager.TotalScore;
 
-        if (finalScore >= targetScore)
+        // ตรวจผลชนะหรือแพ้จากคะแนนรวม
+        bool win = totalScore >= targetScore;
+
+        ResultDataManager.IsWin = win;
+
+        Debug.Log(
+            "Destruction: " +
+            ResultDataManager.DestructionScore +
+            " | Chain: " +
+            ResultDataManager.ChainCount +
+            " | Multiplier: x" +
+            ResultDataManager.Multiplier +
+            " | Total: " + totalScore
+        );
+
+        if (win)
         {
-            Debug.Log("YOU WIN! Score: " + finalScore);
             SceneManager.LoadScene("Win");
         }
         else
         {
-            Debug.Log("YOU LOSE! Score: " + finalScore);
             SceneManager.LoadScene("Lose");
         }
     }

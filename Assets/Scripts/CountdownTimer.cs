@@ -1,7 +1,8 @@
 
+using System.Collections;
 using UnityEngine;
-using TMPro;
 using UnityEngine.SceneManagement;
+using TMPro;
 
 public class CountdownTimer : MonoBehaviour
 {
@@ -10,6 +11,9 @@ public class CountdownTimer : MonoBehaviour
     [Header("Timer Settings")]
     public float exploreDuration = 5f;
     public float selectDuration = 5f;
+
+    [Header("Result Settings")]
+    public float loseSceneDelay = 1f;
 
     [Header("UI")]
     public TMP_Text timerText;
@@ -33,22 +37,25 @@ public class CountdownTimer : MonoBehaviour
 
     private void Start()
     {
-        // ช่วงแรก: สำรวจแผนที่
         currentPhase = GamePhase.Exploring;
         timeRemaining = exploreDuration;
 
         if (messageText != null)
+        {
             messageText.text = "";
+        }
 
         UpdateTimerUI();
     }
 
     private void Update()
     {
-        // นับเวลาเฉพาะช่วงสำรวจและเลือกถัง
+        // นับเวลาเฉพาะช่วงสำรวจและเลือก Barrel
         if (currentPhase != GamePhase.Exploring &&
             currentPhase != GamePhase.Selecting)
+        {
             return;
+        }
 
         timeRemaining -= Time.deltaTime;
 
@@ -58,12 +65,10 @@ public class CountdownTimer : MonoBehaviour
 
             if (currentPhase == GamePhase.Exploring)
             {
-                // สำรวจครบ 10 วิ เริ่มช่วงเลือกถัง
                 StartSelectionPhase();
             }
             else if (currentPhase == GamePhase.Selecting)
             {
-                // ไม่เลือกถังภายใน 10 วิ = แพ้
                 LoseGame();
             }
         }
@@ -71,35 +76,40 @@ public class CountdownTimer : MonoBehaviour
         UpdateTimerUI();
     }
 
+    // เริ่มช่วงเลือกถังระเบิด 5 วินาที
     private void StartSelectionPhase()
     {
         currentPhase = GamePhase.Selecting;
         timeRemaining = selectDuration;
 
         if (messageText != null)
+        {
             messageText.text = "";
+        }
     }
 
-    // เรียกจาก Barrel เมื่อผู้เล่นคลิก
+    // เรียกจาก ChainExplodable เมื่อคลิกถัง
     public bool TrySelectBarrel()
     {
-        // คลิกได้เฉพาะช่วงเลือกถังเท่านั้น
         if (currentPhase != GamePhase.Selecting)
             return false;
 
-        // เลือกได้เพียงหนึ่งครั้ง
         currentPhase = GamePhase.Exploding;
 
         if (messageText != null)
+        {
             messageText.text = "";
+        }
 
         if (timerText != null)
+        {
             timerText.text = "TIME: STOP";
+        }
 
         return true;
     }
 
-
+    // แพ้เมื่อไม่เลือก Barrel ภายในเวลา
     private void LoseGame()
     {
         currentPhase = GamePhase.Failed;
@@ -109,19 +119,28 @@ public class CountdownTimer : MonoBehaviour
             messageText.text = "";
         }
 
-        Debug.Log("Time Up! Player Lost!");
+        // คำนวณผลลัพธ์ โดยไม่มีการทำลาย
+        ResultDataManager.CalculateFinalScore();
+        ResultDataManager.IsWin = false;
 
-        // เปลี่ยนไป Scene แพ้
-        SceneManager.LoadScene("Lose");
+        StartCoroutine(LoadLoseScene());
     }
 
+    private IEnumerator LoadLoseScene()
+    {
+        yield return new WaitForSeconds(loseSceneDelay);
+
+        SceneManager.LoadScene("Lose");
+    }
 
     private void UpdateTimerUI()
     {
         if (timerText == null)
             return;
 
-        int seconds = Mathf.CeilToInt(timeRemaining);
+        int seconds = Mathf.CeilToInt(
+            Mathf.Max(0f, timeRemaining)
+        );
 
         if (currentPhase == GamePhase.Exploring)
         {
