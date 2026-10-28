@@ -3,38 +3,77 @@ using UnityEngine;
 
 public static class ResultDataManager
 {
-    private const string BestScoreKey = "ChainArcadeBestScore";
+    private const string BestScoreKey =
+        "ChainArcadeBestScore";
 
-    // จำนวนวัตถุที่ถูกทำลาย
+    // สถิติการทำลาย
     public static int DestructionCount { get; private set; }
-
-    // จำนวน Chain Reaction
     public static int ChainCount { get; private set; }
-
-    // คะแนนพื้นฐานจากการทำลาย
     public static int DestructionScore { get; private set; }
 
-    // ตัวคูณคะแนน
+    // Combo และคะแนนรวม
     public static int Multiplier { get; private set; } = 1;
-
-    // คะแนนโบนัส
     public static int ChainBonus { get; private set; }
-
-    // คะแนนรวมทั้งหมด
     public static int TotalScore { get; private set; }
 
     // คะแนนสูงสุด
     public static int BestScore { get; private set; }
 
-    // สถานะชนะหรือแพ้
+    // ผลชนะหรือแพ้
     public static bool IsWin { get; set; }
 
-    // รีเซ็ตข้อมูลเมื่อเริ่มด่านใหม่
+    // จำนวนวัตถุแต่ละชนิด
+    public static int CarCount { get; private set; }
+
+    public static int SmallBuildingCount
+    {
+        get;
+        private set;
+    }
+
+    public static int LargeBuildingCount
+    {
+        get;
+        private set;
+    }
+
+    // ชื่อด่านล่าสุด
+    public static string LastPlayedScene
+    {
+        get;
+        set;
+    } = "GamePlay";
+
+    // คะแนนประมาณการระหว่างเล่น
+    public static int PreviewTotalScore
+    {
+        get
+        {
+            int multiplier = 1;
+
+            if (ChainCount >= 10)
+            {
+                multiplier = 4;
+            }
+            else if (ChainCount >= 5)
+            {
+                multiplier = 2;
+            }
+
+            return DestructionScore * multiplier;
+        }
+    }
+
+    // เริ่มเล่นด่านใหม่
     public static void ResetRun()
     {
         DestructionCount = 0;
         ChainCount = 0;
         DestructionScore = 0;
+
+        CarCount = 0;
+        SmallBuildingCount = 0;
+        LargeBuildingCount = 0;
 
         Multiplier = 1;
         ChainBonus = 0;
@@ -42,24 +81,53 @@ public static class ResultDataManager
 
         IsWin = false;
 
-        BestScore = PlayerPrefs.GetInt(BestScoreKey, 0);
+        BestScore = PlayerPrefs.GetInt(
+            BestScoreKey,
+            0
+        );
     }
 
-    // บันทึกคะแนนทุกครั้งที่วัตถุระเบิด
+    // รองรับการเรียกใช้รูปแบบเดิม
     public static void RecordDestruction(int score)
     {
-        DestructionCount++;
+        RecordDestruction(
+            score,
+            DestructibleType.Barrel
+        );
+    }
 
-        // นับวัตถุทุกชิ้นเป็น Chain
+    // บันทึกการทำลายแต่ละวัตถุ
+    public static void RecordDestruction(
+        int score,
+        DestructibleType type)
+    {
+        // ไม่นับระเบิดที่ผู้เล่นวาง
+        if (type == DestructibleType.PlayerBomb)
+            return;
+
+        DestructionCount++;
         ChainCount++;
 
         DestructionScore += Mathf.Max(0, score);
+
+        // แยกนับรถและตึก
+        if (type == DestructibleType.Car)
+        {
+            CarCount++;
+        }
+        else if (type == DestructibleType.SmallBuilding)
+        {
+            SmallBuildingCount++;
+        }
+        else if (type == DestructibleType.LargeBuilding)
+        {
+            LargeBuildingCount++;
+        }
     }
 
-    // คำนวณคะแนนเมื่อ Chain Reaction จบ
+    // คำนวณคะแนนสุดท้าย
     public static void CalculateFinalScore()
     {
-        // ระบบ Combo Multiplier
         if (ChainCount >= 10)
         {
             Multiplier = 4;
@@ -73,31 +141,27 @@ public static class ResultDataManager
             Multiplier = 1;
         }
 
-        // คำนวณโบนัส
-        ChainBonus = DestructionScore * (Multiplier - 1);
+        ChainBonus =
+            DestructionScore * (Multiplier - 1);
 
-        // คำนวณคะแนนรวม
-        TotalScore = DestructionScore + ChainBonus;
+        TotalScore =
+            DestructionScore + ChainBonus;
 
-        // โหลดคะแนนสูงสุดที่เคยบันทึก
-        BestScore = PlayerPrefs.GetInt(BestScoreKey, 0);
+        BestScore = PlayerPrefs.GetInt(
+            BestScoreKey,
+            0
+        );
 
-        // บันทึกคะแนนสูงสุดใหม่
         if (TotalScore > BestScore)
         {
             BestScore = TotalScore;
 
-            PlayerPrefs.SetInt(BestScoreKey, BestScore);
+            PlayerPrefs.SetInt(
+                BestScoreKey,
+                BestScore
+            );
+
             PlayerPrefs.Save();
         }
-
-        Debug.Log("===== RESULT =====");
-        Debug.Log("Destruction: " + DestructionCount);
-        Debug.Log("Chain: " + ChainCount);
-        Debug.Log("Multiplier: x" + Multiplier);
-        Debug.Log("Base Score: " + DestructionScore);
-        Debug.Log("Chain Bonus: " + ChainBonus);
-        Debug.Log("Total Score: " + TotalScore);
-        Debug.Log("Best Score: " + BestScore);
     }
 }

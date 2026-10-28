@@ -5,12 +5,14 @@ using UnityEngine;
 public class ChainExplodable : MonoBehaviour
 {
     [Header("Explosion Settings")]
-    public bool canBeClicked = false;
     public float explosionRadius = 1.2f;
     public float explosionDelay = 0.25f;
 
     [Header("Score Settings")]
     public int scoreValue = 100;
+
+    public DestructibleType destructibleType =
+        DestructibleType.Barrel;
 
     [Header("Visual Effects")]
     public GameObject explosionEffectPrefab;
@@ -18,42 +20,31 @@ public class ChainExplodable : MonoBehaviour
 
     private bool hasExploded = false;
 
-    private void OnMouseDown()
-    {
-        if (!canBeClicked || hasExploded)
-            return;
-
-        if (CountdownTimer.Instance == null)
-            return;
-
-        if (CountdownTimer.Instance.TrySelectBarrel())
-        {
-            Explode();
-        }
-    }
-
+    // สั่งให้วัตถุเริ่มระเบิด
     public void Explode()
     {
+        // ป้องกันวัตถุระเบิดซ้ำ
         if (hasExploded)
+        {
             return;
+        }
 
         hasExploded = true;
 
-        // เปลี่ยนเป็นภาพเสียหาย ถ้ามีการกำหนดไว้
-        if (damagedSprite != null)
-        {
-            SpriteRenderer sr = GetComponent<SpriteRenderer>();
+        // เปลี่ยนเป็นภาพ Damage ถ้ามี
+        SpriteRenderer sr =
+            GetComponent<SpriteRenderer>();
 
-            if (sr != null)
-            {
-                sr.sprite = damagedSprite;
-            }
+        if (damagedSprite != null && sr != null)
+        {
+            sr.sprite = damagedSprite;
         }
 
-        // แจ้งระบบตรวจผลว่ามีวัตถุเริ่มระเบิด
+        // แจ้งว่ามีวัตถุเริ่มระเบิด
         if (GameResultManager.Instance != null)
         {
-            GameResultManager.Instance.RegisterExplosion();
+            GameResultManager.Instance
+                .RegisterExplosion();
         }
 
         StartCoroutine(ExplosionRoutine());
@@ -61,9 +52,12 @@ public class ChainExplodable : MonoBehaviour
 
     private IEnumerator ExplosionRoutine()
     {
-        yield return new WaitForSeconds(explosionDelay);
+        // หน่วงเวลาก่อนระเบิด
+        yield return new WaitForSeconds(
+            explosionDelay
+        );
 
-        // สร้างเอฟเฟกต์ระเบิด
+        // สร้าง Animation ระเบิดเดิม
         if (explosionEffectPrefab != null)
         {
             Instantiate(
@@ -73,49 +67,81 @@ public class ChainExplodable : MonoBehaviour
             );
         }
 
-        // ตรวจวัตถุในรัศมีระเบิด
-        Collider2D[] hits = Physics2D.OverlapCircleAll(
-            transform.position,
-            explosionRadius
-        );
+        // เล่นเสียงระเบิด
+        if (BaBoomAudioManager.Instance != null)
+        {
+            BaBoomAudioManager.Instance
+                .PlayExplosion();
+        }
+
+        // หาวัตถุภายในรัศมีระเบิด
+        Collider2D[] hits =
+            Physics2D.OverlapCircleAll(
+                transform.position,
+                explosionRadius
+            );
 
         foreach (Collider2D hit in hits)
         {
             ChainExplodable target =
                 hit.GetComponent<ChainExplodable>();
 
-            if (target != null && target != this)
+            if (target == null || target == this)
             {
-                float distance = Vector2.Distance(
-                    (Vector2)transform.position,
-                    (Vector2)target.transform.position
-                );
+                continue;
+            }
 
-                if (distance <= explosionRadius)
-                {
-                    target.Explode();
-                }
+            // ตรวจระยะห่างจากจุดศูนย์กลาง
+            float distance = Vector2.Distance(
+                transform.position,
+                target.transform.position
+            );
+
+            // ส่งระเบิดต่อภายในรัศมี
+            if (distance <= explosionRadius)
+            {
+                target.Explode();
             }
         }
 
-        // เพิ่มคะแนนพื้นฐาน
-        if (ScoreManager.Instance != null)
+        // ระเบิดของผู้เล่นไม่ให้คะแนน
+        if (destructibleType !=
+            DestructibleType.PlayerBomb)
         {
-            ScoreManager.Instance.AddScore(scoreValue);
+            // เพิ่มคะแนนพื้นฐาน
+            if (ScoreManager.Instance != null)
+            {
+                ScoreManager.Instance
+                    .AddScore(scoreValue);
+            }
+
+            // นับสถิติรถ ตึก และ Combo
+            ResultDataManager.RecordDestruction(
+                scoreValue,
+                destructibleType
+            );
+
+            // เล่นเสียงคะแนน
+            if (scoreValue > 0 &&
+                BaBoomAudioManager.Instance != null)
+            {
+                BaBoomAudioManager.Instance
+                    .PlayScore();
+            }
         }
 
-        // เก็บข้อมูล Combo และคะแนน
-        ResultDataManager.RecordDestruction(scoreValue);
-
-        // แจ้งว่าวัตถุระเบิดเสร็จ
+        // แจ้งว่าการระเบิดชิ้นนี้เสร็จแล้ว
         if (GameResultManager.Instance != null)
         {
-            GameResultManager.Instance.ExplosionFinished();
+            GameResultManager.Instance
+                .ExplosionFinished();
         }
 
+        // ลบวัตถุที่ถูกทำลาย
         Destroy(gameObject);
     }
 
+    // แสดงรัศมีใน Scene View
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;

@@ -34,11 +34,11 @@ public class ResultSummaryUI : MonoBehaviour
         {
             if (ResultDataManager.IsWin)
             {
-                titleText.text = "MASTERPIECE!";
+                titleText.text = "";
             }
             else
             {
-                titleText.text = "TRY AGAIN!";
+                titleText.text = "";
             }
         }
 

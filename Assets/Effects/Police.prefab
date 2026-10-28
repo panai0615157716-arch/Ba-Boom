@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 619177713794360170}
   - component: {fileID: 8273841158762185885}
   - component: {fileID: 5346125486180121745}
+  - component: {fileID: 1195251557808312647}
   m_Layer: 0
   m_Name: Police
   m_TagString: Untagged
@@ -28,7 +29,7 @@ Transform:
   m_GameObject: {fileID: 8373138298163352048}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -1933.2301, y: -989.17, z: 0}
+  m_LocalPosition: {x: -1930.912, y: -992.76, z: 0}
   m_LocalScale: {x: 0.2975696, y: 0.27376404, z: 0.19837973}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -151,9 +152,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b62de95a29e299e4894f7fa5cece800e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ChainExplodable
-  canBeClicked: 0
   explosionRadius: 2.4
   explosionDelay: 0.25
   scoreValue: 200
+  destructibleType: 1
   explosionEffectPrefab: {fileID: 0}
-  damagedSprite: {fileID: 0}
+  damagedSprite: {fileID: 1085533153678370262, guid: f251d71511838d64f9afecafc14c03b8, type: 3}
+--- !u!114 &1195251557808312647
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8373138298163352048}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f88b6dd57876e54594cabceaa0b5515, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RoadCarMovement
+  routePoints:
+  - {fileID: 0}
+  - {fileID: 0}
+  moveSpeed: 1.5
+  moveOnlyDuringExplore: 1
+  pingPong: 1
+  carSprite: {fileID: 619177713794360170}
+  autoFlipHorizontal: 1
+  spriteFacesRight: 0
